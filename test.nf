@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 /*
+TEST
  * Define the default parameters
  */
 
