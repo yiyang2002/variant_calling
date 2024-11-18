@@ -84,11 +84,48 @@ Inside Gitpod, execute the pipeline as described in the Running the Pipeline sec
 
 ---
 
-Pipeline Overview
+## Pipeline Overview
 The following is a simplified representation of the workflow in a Directed Acyclic Graph (DAG):
 
 ![image](https://github.com/user-attachments/assets/4e7af725-abb0-4885-80a6-4932bbafa47b)
 
+### Process Descriptions
+
+**1. run_fastqc:**
+   
+The run_fastqc process performs quality control on the raw RNA-Seq reads using the FastQC tool. This step generates HTML and ZIP reports summarizing key quality metrics such as per-base sequence quality, GC content, and adapter contamination. These metrics help identify potential issues in the input data, ensuring that only high-quality reads are used for downstream analysis. The results are stored in the results/fastqc_reports directory for easy review.
+
+**2. index_genome_samtools:**
+   
+The index_genome_samtools process creates a FASTA genome index using SAMtools. This index is a tab-delimited file (*.fai) containing metadata about the reference genome, such as the chromosome names, lengths, and start positions in the FASTA file. This index is crucial for efficient data retrieval during alignment and variant calling steps.
+
+**3. create_sequence_dict:**
+   
+The create_sequence_dict process generates a sequence dictionary for the reference genome using Picard. The dictionary (*.dict) provides a detailed mapping of sequence names and lengths, allowing tools like GATK to interpret and reference the genome during alignment and variant calling. This step ensures compatibility between the genome file and downstream processes.
+
+**4. index_genome_star:**
+   
+The index_genome_star process creates a STAR genome index, a critical step for aligning RNA-Seq reads. STAR builds a specialized index that incorporates splice junction information, enabling efficient and accurate alignment of reads, including those spanning exon-intron boundaries. The index is stored in the star_index_dir folder and is used in the read alignment step.
+
+**5. align_reads_star:**
+    
+The align_reads_star process aligns the RNA-Seq reads to the reference genome using STAR. It outputs sorted BAM files (Aligned.sortedByCoord.out.bam) that contain aligned reads in coordinate order, making them ready for downstream analysis. This step also indexes the BAM file using SAMtools for rapid data retrieval. STAR’s advanced algorithms allow for handling large-scale RNA-Seq data and detecting splice junctions.
+
+**6. split_reads_gatk:**
+    
+The split_reads_gatk process uses GATK’s SplitNCigarReads tool to process RNA-Seq reads that span splice junctions. Reads containing N in their CIGAR strings (representing introns) are split into exon-specific alignments. This ensures accurate representation of RNA splicing events, improving the precision of downstream variant calling.
+
+**7. call_variants_gatk:**
+    
+The call_variants_gatk process performs variant calling using GATK’s HaplotypeCaller. It generates a VCF file (final.vcf) containing all detected variants, such as SNPs and indels. Variants are filtered using criteria like strand bias (FS) and quality-by-depth (QD) to produce a high-confidence variant dataset. This process is central to identifying genetic mutations in the RNA-Seq data.
+
+**8. filter_vcf:**
+    
+The filter_vcf process filters the variants in the final.vcf file based on additional quality metrics. Variants that fail filters such as a minimum read depth (DP >= 8) are excluded. The resulting filtered.vcf file contains only reliable, high-confidence variants suitable for further analysis, such as annotation or comparison studies.
+
+**9. coverage_analysis:**
+    
+The coverage_analysis process calculates the sequencing depth across the reference genome using SAMtools. It generates a coverage report (<sampleId>_coverage.txt) that provides per-base coverage values. This information is essential for assessing whether the genome is adequately covered and for evaluating the reliability of the variant calls.
 
 ---
 
