@@ -1,18 +1,32 @@
 #!/usr/bin/env nextflow
 
 /*
- * Define the default parameters
+ * Define default parameters
  */
-params.genome     = "${projectDir}/data/ref_genome/ecoli_rel606.fasta"
-params.reads      = "${projectDir}/data/trimmed_fastq_small/*_{1,2}_trim.fastq.gz"
-params.results    = "results"
+params.genome  = "${projectDir}/data/ref_genome/ecoli_rel606.fasta"
+params.reads   = "${projectDir}/data/trimmed_fastq_small/*_{1,2}_trim.fastq.gz"
+params.results = "results"
+
+
+process run_fastqc {
+    publishDir "${params.results}/fastqc_reports", mode: 'symlink'
+    input:
+    tuple val(sampleId), path(reads)
+
+    output:
+    path "fastqc_reports"
+
+    script:
+    """
+    mkdir -p fastqc_reports
+    fastqc -o fastqc_reports ${reads}
+    """
+}
 
 /*
- * Process 1A: Create a FASTA genome index with samtools
+ * Process 1A: Create FASTA genome index using SAMtools
  */
-process prepare_genome_samtools {
-    container 'quay.io/biocontainers/samtools:1.3.1--h0cf4675_11'
-
+process index_genome_samtools {
     input:
     path genome
 
@@ -26,12 +40,9 @@ process prepare_genome_samtools {
 }
 
 /*
- * Process 1B: Create a FASTA genome sequence dictionary with Picard for GATK
+ * Process 1B: Create genome sequence dictionary using Picard
  */
-
-process prepare_genome_picard {
-    container 'quay.io/biocontainers/picard:1.141--hdfd78af_6'
-
+process create_sequence_dict {
     input:
     path genome
 
@@ -40,74 +51,49 @@ process prepare_genome_picard {
 
     script:
     """
-    picard CreateSequenceDictionary R= ${genome} O= ${genome.baseName}.dict
+    picard CreateSequenceDictionary R=${genome} O=${genome.baseName}.dict
     """
 }
 
 /*
-* Process 1C: Create the genome index file for STAR
-*/
-process prepare_star_genome_index {
-    container 'quay.io/biocontainers/star:2.7.10b--h6b7c446_1'
-
+ * Process 1C: Create STAR genome index
+ */
+process index_genome_star {
     input:
     path genome
 
     output:
-    path 'genome_dir'
+    path "star_index_dir"
 
     script:
     """
-    mkdir -p genome_dir
+    mkdir -p star_index_dir
 
     STAR --runMode genomeGenerate \
-         --genomeDir genome_dir \
+         --genomeDir star_index_dir \
          --genomeFastaFiles ${genome} \
          --runThreadN ${task.cpus}
     """
 }
 
 /*
- * Process 2: Align RNA-Seq reads to the genome with STAR
+ * Process 2: Align RNA-Seq reads using STAR
  */
-
-process rnaseq_mapping_star {
-    container 'quay.io/biocontainers/mulled-v2-52f8f283e3c401243cee4ee45f80122fbf6df3bb:e3bc54570927dc255f0e580cba1789b64690d611-0'
-
+process align_reads_star {
     input:
     path genome
-    path genomeDir
-    tuple val(replicateId), path(reads)
+    path starIndexDir
+    tuple val(sampleId), path(reads)
 
     output:
-    tuple val(replicateId),
+    tuple val(sampleId),
           path('Aligned.sortedByCoord.out.bam'),
           path('Aligned.sortedByCoord.out.bam.bai')
 
     script:
     """
-    # ngs-nf-dev Align reads to genome
-    STAR --genomeDir ${genomeDir} \
-         --readFilesIn ${reads} \
-         --runThreadN ${task.cpus} \
-         --readFilesCommand zcat \
-         --outFilterType BySJout \
-         --alignSJoverhangMin 8 \
-         --alignSJDBoverhangMin 1 \
-         --outFilterMismatchNmax 999
-
-    # 2nd pass (improve alignments using table of splice
-    # junctions and create a new index)
-    mkdir -p genomeDir
-    STAR --runMode genomeGenerate \
-         --genomeDir genomeDir \
-         --genomeFastaFiles ${genome} \
-         --sjdbFileChrStartEnd SJ.out.tab \
-         --sjdbOverhang 75 \
-         --runThreadN ${task.cpus}
-
-    # Final read alignments
-    STAR --genomeDir genomeDir \
+    # Align reads using STAR
+    STAR --genomeDir ${starIndexDir} \
          --readFilesIn ${reads} \
          --runThreadN ${task.cpus} \
          --readFilesCommand zcat \
@@ -116,36 +102,28 @@ process rnaseq_mapping_star {
          --alignSJDBoverhangMin 1 \
          --outFilterMismatchNmax 999 \
          --outSAMtype BAM SortedByCoordinate \
-         --outSAMattrRGline ID:${replicateId} LB:library PL:illumina \
-                            PU:machine SM:GM12878
+         --outSAMattrRGline ID:${sampleId} LB:library PL:illumina PU:machine SM:sample
 
-    # Index the BAM file
+    # Index the sorted BAM file
     samtools index Aligned.sortedByCoord.out.bam
     """
 }
 
 /*
- * Process 3: GATK Split on N
+ * Process 3: Split reads on 'N' in CIGAR string using GATK
  */
-
-process rnaseq_gatk_splitNcigar {
-    container 'quay.io/broadinstitute/gotc-prod-gatk:1.0.0-4.1.8.0-1626439571'
-    tag "${replicateId}"
-
+process split_reads_gatk {
     input:
     path genome
-    path index
-    path genome_dict
-    tuple val(replicateId),
-          path(bam),
-          path(bai)
+    path genomeIndex
+    path genomeDict
+    tuple val(sampleId), path(bam), path(bai)
 
     output:
-    tuple val(replicateId), path('split.bam'), path('split.bai')
+    tuple val(sampleId), path('split.bam'), path('split.bai')
 
     script:
     """
-    # SplitNCigarReads and reassign mapping qualities
     java -jar /usr/gitc/GATK35.jar -T SplitNCigarReads \
                                    -R ${genome} -I ${bam} \
                                    -o split.bam \
@@ -156,17 +134,14 @@ process rnaseq_gatk_splitNcigar {
 }
 
 /*
- * Process 5: GATK Variant Calling
+ * Process 4: Variant Calling using GATK HaplotypeCaller
  */
-
-process rnaseq_call_variants {
-    container 'quay.io/broadinstitute/gotc-prod-gatk:1.0.0-4.1.8.0-1626439571'
-    tag "${sampleId}"
-
+process call_variants_gatk {
+    publishDir "${params.results}/variant_calls", mode: 'symlink'
     input:
     path genome
-    path index
-    path dict
+    path genomeIndex
+    path genomeDict
     tuple val(sampleId), path(bam), path(bai)
 
     output:
@@ -176,14 +151,14 @@ process rnaseq_call_variants {
     """
     echo "${bam.join('\n')}" > bam.list
 
-    # Variant calling
+    # Variant calling with HaplotypeCaller
     java -jar /usr/gitc/GATK35.jar -T HaplotypeCaller \
-                    -R ${genome} -I bam.list \
-                    -dontUseSoftClippedBases \
-                    -stand_call_conf 20.0 \
-                    -o output.gatk.vcf.gz
+                                   -R ${genome} -I bam.list \
+                                   -dontUseSoftClippedBases \
+                                   -stand_call_conf 20.0 \
+                                   -o output.gatk.vcf.gz
 
-    # Variant filtering
+    # Variant filtering with GATK
     java -jar /usr/gitc/GATK35.jar -T VariantFiltration \
                                    -R ${genome} -V output.gatk.vcf.gz \
                                    -window 35 -cluster 3 \
@@ -193,31 +168,81 @@ process rnaseq_call_variants {
     """
 }
 
+/*
+ * Process 5: Filter VCF for quality metrics
+ */
+process filter_vcf {
+    publishDir "${params.results}/filtered_vcf", mode: 'symlink'
+    input:
+    tuple val(sampleId), path('final.vcf')
+
+    output:
+    tuple val(sampleId), path('filtered.vcf')
+
+    script:
+    """
+    # Filter VCF based on depth (DP >= 8)
+    grep -v '#' final.vcf | awk '\$7~/PASS/' | perl -ne 'chomp(\$_); \
+        (\$dp)=\$_=~/DP\\=(\\d+)\\;/; if(\$dp>=8){print \$_."\\n"};' > filtered.vcf
+    """
+}
+
+/*
+ * Process 6: Coverage Analysis using SAMtools
+ */
+process coverage_analysis {
+    publishDir "${params.results}/coverage_reports", mode: 'symlink'
+    input:
+    tuple val(sampleId), path(bam)
+
+    output:
+    path("${sampleId}_coverage.txt")
+
+    script:
+    """
+    samtools depth ${bam} > ${sampleId}_coverage.txt
+    """
+}
+
+/*
+ * Workflow: Define the pipeline execution steps
+ */
 workflow {
+
+    // Channel for paired-end reads
     reads_ch = Channel.fromFilePairs(params.reads)
+    run_fastqc(reads_ch)
+    // Step 1: Index the genome
+    index_genome_samtools(params.genome)
+    create_sequence_dict(params.genome)
+    index_genome_star(params.genome)
 
-    prepare_genome_samtools(params.genome)
-    prepare_genome_picard(params.genome)
-    prepare_star_genome_index(params.genome)
+    // Step 2: Align reads to the genome
+    align_reads_star(params.genome, index_genome_star.out, reads_ch)
 
-    rnaseq_mapping_star(params.genome, prepare_star_genome_index.out, reads_ch)
+    // Step 3: Split reads on 'N' in CIGAR string
+    split_reads_gatk(params.genome,
+                     index_genome_samtools.out,
+                     create_sequence_dict.out,
+                     align_reads_star.out)
 
-    rnaseq_gatk_splitNcigar(params.genome,
-                            prepare_genome_samtools.out,
-                            prepare_genome_picard.out,
-                            rnaseq_mapping_star.out)
-
-    // Group BAMs by sampleId after extracting it from replicateId
-    rnaseq_gatk_splitNcigar.out
-        .map { replicateId, bam, bai ->
-            sampleId = replicateId.replaceAll(/[12]$/,'')
-            tuple(sampleId, bam, bai)
-        }
+    // Group BAM files by sample ID
+    split_reads_gatk.out
+        .map { sampleId, bam, bai -> tuple(sampleId, bam, bai) }
         .groupTuple()
-        .set { split_bams }
+        .set { grouped_bams }
 
-    rnaseq_call_variants(params.genome,
-                         prepare_genome_samtools.out,
-                         prepare_genome_picard.out,
-                         split_bams)
+    // Step 4: Variant calling
+    call_variants_gatk(params.genome,
+                       index_genome_samtools.out,
+                       create_sequence_dict.out,
+                       grouped_bams)
+
+    // Step 5: Filter VCF file for quality
+    filter_vcf(call_variants_gatk.out)
+
+    // Coverage analysis
+    grouped_bams.map { sampleId, bam, _ -> tuple(sampleId, bam) }
+                .set { bam_files }
+    coverage_analysis(bam_files)
 }
