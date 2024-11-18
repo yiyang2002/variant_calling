@@ -9,7 +9,7 @@ params.results = "results"
 
 
 process run_fastqc {
-    publishDir "${params.results}/fastqc_reports", mode: 'symlink'
+    publishDir "${params.results}/fastqc_reports", mode: 'copy'
     input:
     tuple val(sampleId), path(reads)
 
@@ -137,7 +137,7 @@ process split_reads_gatk {
  * Process 4: Variant Calling using GATK HaplotypeCaller
  */
 process call_variants_gatk {
-    publishDir "${params.results}/variant_calls", mode: 'symlink'
+    publishDir "${params.results}/variant_calls", mode: 'copy'
     input:
     path genome
     path genomeIndex
@@ -172,7 +172,7 @@ process call_variants_gatk {
  * Process 5: Filter VCF for quality metrics
  */
 process filter_vcf {
-    publishDir "${params.results}/filtered_vcf", mode: 'symlink'
+    publishDir "${params.results}/filtered_vcf", mode: 'copy'
     input:
     tuple val(sampleId), path('final.vcf')
 
@@ -191,7 +191,7 @@ process filter_vcf {
  * Process 6: Coverage Analysis using SAMtools
  */
 process coverage_analysis {
-    publishDir "${params.results}/coverage_reports", mode: 'symlink'
+    publishDir "${params.results}/coverage_reports", mode: 'copy'
     input:
     tuple val(sampleId), path(bam)
 
