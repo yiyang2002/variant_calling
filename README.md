@@ -87,7 +87,8 @@ Inside Gitpod, execute the pipeline as described in the Running the Pipeline sec
 ## Pipeline Overview
 The following is a simplified representation of the workflow in a Directed Acyclic Graph (DAG):
 
-![image](https://github.com/user-attachments/assets/4e7af725-abb0-4885-80a6-4932bbafa47b)
+![image](https://github.com/user-attachments/assets/31849b68-4c28-484f-ae7b-606ac3cc41eb)
+
 
 ### Process Descriptions
 
