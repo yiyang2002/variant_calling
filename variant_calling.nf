@@ -208,7 +208,6 @@ process coverage_analysis {
  * Workflow: Define the pipeline execution steps
  */
 workflow {
-
     // Channel for paired-end reads
     reads_ch = Channel.fromFilePairs(params.reads)
     run_fastqc(reads_ch)
@@ -231,6 +230,11 @@ workflow {
         .map { sampleId, bam, bai -> tuple(sampleId, bam, bai) }
         .groupTuple()
         .set { grouped_bams }
+        
+    // Coverage analysis
+    grouped_bams.map { sampleId, bam, _ -> tuple(sampleId, bam) }
+                .set { bam_files }
+    coverage_analysis(bam_files)
 
     // Step 4: Variant calling
     call_variants_gatk(params.genome,
@@ -240,9 +244,4 @@ workflow {
 
     // Step 5: Filter VCF file for quality
     filter_vcf(call_variants_gatk.out)
-
-    // Coverage analysis
-    grouped_bams.map { sampleId, bam, _ -> tuple(sampleId, bam) }
-                .set { bam_files }
-    coverage_analysis(bam_files)
 }
