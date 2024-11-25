@@ -63,7 +63,7 @@ The pipeline uses Docker containers for each process, as specified in nextflow.c
 Execute the pipeline using Nextflow:
 
  ```bash
-nextflow run final.nf
+nextflow run variant_calling.nf
  ```
 
 	•	Note: Ensure that Docker is running on your system before executing the command.
