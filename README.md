@@ -62,7 +62,9 @@ The pipeline uses Docker containers for each process, as specified in nextflow.c
 
 Execute the pipeline using Nextflow:
 
+ ```bash
 nextflow run final.nf
+ ```
 
 	•	Note: Ensure that Docker is running on your system before executing the command.
 	•	The pipeline will take around 3 minutes to complete.
