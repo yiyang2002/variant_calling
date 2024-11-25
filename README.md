@@ -255,4 +255,4 @@ The Variant Calling Analysis Pipeline offers a comprehensive, efficient, and rep
 For questions or issues, please contact:
 	•	Name: Yiyang Wang
 	•	Email: yiyang.wang2002@gmail.com
-	•	GitHub: yiyang2002 write one paragraph of conclusion for this pipieline
+	•	GitHub: yiyang2002
