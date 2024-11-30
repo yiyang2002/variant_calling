@@ -134,7 +134,7 @@ The coverage_analysis process calculates the sequencing depth across the referen
 
 ## Input Data
 
-The input data for this RNA-Seq pipeline consists of paired-end FASTQ files and a reference genome, originating from a long-term evolution experiment (LTEE) with Escherichia coli. Specifically, the dataset features a clone from the 50,000th generation, submitted by The University of Texas at Austin as part of a study on E. coli genome evolution over 50,000 generations.
+The input data for this RNA-Seq pipeline consists of paired-end FASTQ files and a reference genome, originating from a long-term evolution experiment (LTEE) with Escherichia coli.[7] Specifically, the dataset features a clone from the 50,000th generation, submitted by The University of Texas at Austin as part of a study on E. coli genome evolution over 50,000 generations.
 ### Note:
 Both the paired-end FASTQ files and the reference genome (*E. coli REL606*) are already included in the repository under the `data/` directory. If needed, you can manually follow the steps below to regenerate the files.
 
@@ -249,6 +249,8 @@ The Variant Calling Analysis Pipeline offers a comprehensive, efficient, and rep
 [5] McKenna, A., Hanna, M., Banks, E., et al. (2010). The Genome Analysis Toolkit: A MapReduce framework for analyzing next-generation DNA sequencing data. Genome Research, 20(9), 1297–1303. https://doi.org/10.1101/gr.107524.110
 
 [6] Van der Auwera, G. A., & O’Connor, B. D. (2020). Genomics in the Cloud: Using Docker, GATK, and WDL in Terra. O’Reilly Media.
+
+[7] Tenaillon O, Barrick JE, Ribeck N, Deatherage DE, Blanchard JL, Dasgupta A, Wu GC, Wielgoss S, Cruveiller S, Médigue C, Schneider D, Lenski RE. Tempo and mode of genome evolution in a 50,000-generation experiment. Nature. 2016 Aug 11;536(7615):165-70. doi: 10.1038/nature18959. Epub 2016 Aug 1. PMID: 27479321; PMCID: PMC4988878.
 
 ## Contact
 
