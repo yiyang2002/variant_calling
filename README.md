@@ -84,11 +84,12 @@ Click on the Gitpod button on the repository page.
   3.	Run the Pipeline
 Inside Gitpod, execute the pipeline as described in the Running the Pipeline section.
 
-## Possible Issue when run locally on mac 
+## Possible Issue when run locally on mac
 ```
 WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
 ```
 This warning arises because the platform of the requested Docker image (linux/amd64) does not match the detected host platform of your machine (linux/arm64/v8). This mismatch typically occurs on Apple Silicon Macs (e.g., those with M1 or M2 chips), which use the ARM64 architecture, while many Docker images are built for the AMD64 architecture. To avoid this, you can use a cloud-based development environment like Gitpod, which abstracts platform compatibility issues. Gitpod is particularly useful because it provides a consistent and containerized development environment, eliminating the need to resolve architecture-related mismatches manually on your local machine.
+
 ---
 
 ## Pipeline Overview
