@@ -90,6 +90,9 @@ WARNING: The requested image's platform (linux/amd64) does not match the detecte
 ```
 This warning arises because the platform of the requested Docker image (linux/amd64) does not match the detected host platform of your machine (linux/arm64/v8). This mismatch typically occurs on Apple Silicon Macs (e.g., those with M1 or M2 chips), which use the ARM64 architecture, while many Docker images are built for the AMD64 architecture. To avoid this, you can use a cloud-based development environment like Gitpod, which abstracts platform compatibility issues. Gitpod is particularly useful because it provides a consistent and containerized development environment, eliminating the need to resolve architecture-related mismatches manually on your local machine.
 
+Here’s an example of a successful run on Gitpod:
+![image](https://github.com/user-attachments/assets/56280f51-0b4d-4082-91c7-60970ee7aa88)
+
 ---
 
 ## Pipeline Overview
