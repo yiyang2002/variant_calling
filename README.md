@@ -24,7 +24,7 @@ This script was developed and tested in a Gitpod environment, an online IDE that
 
 Installing this pipeline requires the following software:
 
-- **Gitpod**: [Installation Guide](https://www.gitpod.io/docs/introduction/getting-started)
+- **Gitpod**: [Installation Guide](https://training.nextflow.io/envsetup/01_setup/#running-gitpod)
 - **Nextflow**: Workflow management system. [Installation Guide](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 - **Docker**: For containerized execution. [Installation Guide](https://docs.docker.com/get-docker/)
 - **Git**: For cloning the repository. [Installation Guide](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
